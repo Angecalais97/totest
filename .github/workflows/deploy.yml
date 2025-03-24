@@ -1,9 +1,9 @@
-name: Carles Deploy to GitHub Pages
+name: Carles Deploy to GitHub Pages  # í±ˆ Just the name shown in GitHub Actions tab
 
 on:
   push:
     branches:
-      - main
+      - "**"  # í±ˆ Trigger on push from ANY branch (wildcard)
 
 jobs:
   deploy:
@@ -16,6 +16,6 @@ jobs:
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: .  # Root folder with your index.html
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        publish_dir: .  # í±ˆ Deploy from the root directory
 
