@@ -3,7 +3,7 @@ name: Carles Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - feature-header
 
 jobs:
   deploy:
