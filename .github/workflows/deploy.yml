@@ -1,0 +1,21 @@
+name: Carles Deploy to GitHub Pages  # í±ˆ Just the name shown in GitHub Actions tab
+
+on:
+  push:
+    branches:
+      - "**"  # í±ˆ Trigger on push from ANY branch (wildcard)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the repo
+      uses: actions/checkout@v3
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        publish_dir: .  # í±ˆ Deploy from the root directory
+
