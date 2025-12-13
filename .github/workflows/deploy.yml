@@ -5,26 +5,25 @@ on:
     branches:
       - main
 
+permissions:        # 🔐 Workflow-level permissions
+  contents: read
+  security-events: write
+
 jobs:
   devsecops:
     runs-on: ubuntu-latest
-
-    # 🔐 Permissions minimales par défaut
-    permissions:
-      contents: read
-      security-events: write   # 👈 OBLIGATOIRE pour SARIF
 
     steps:
     # 1️⃣ Checkout
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Scan secrets (Gitleaks)
+    # 2️⃣ Gitleaks
     - name: Secret scan with Gitleaks
       uses: gitleaks/gitleaks-action@v2
 
-    # 3️⃣ Trivy FS scan → SARIF + JSON
-    - name: Trivy filesystem scan
+    # 3️⃣ Trivy FS (SARIF)
+    - name: Trivy filesystem scan (SARIF)
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: fs
@@ -34,17 +33,8 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    - name: Trivy filesystem scan (JSON)
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: fs
-        scan-ref: .
-        format: json
-        output: trivy-fs.json
-        severity: CRITICAL,HIGH
-
-    # 4️⃣ Upload FS results to GitHub Security
-    - name: Upload FS scan to Security tab
+    # 4️⃣ Upload FS SARIF
+    - name: Upload FS scan
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-fs.sarif
@@ -53,7 +43,7 @@ jobs:
     - name: Build Docker image
       run: docker build -t totest-site .
 
-    # 6️⃣ Trivy Image scan → SARIF + JSON
+    # 6️⃣ Trivy Image (SARIF)
     - name: Trivy image scan (SARIF)
       uses: aquasecurity/trivy-action@master
       with:
@@ -63,35 +53,23 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    - name: Trivy image scan (JSON)
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: totest-site
-        format: json
-        output: trivy-image.json
-        severity: CRITICAL,HIGH
-
-    # 7️⃣ Upload Image results to GitHub Security
-    - name: Upload Image scan to Security tab
+    # 7️⃣ Upload Image SARIF
+    - name: Upload Image scan
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-image.sarif
 
-    # 8️⃣ Upload ALL reports as artifacts
-    - name: Upload security reports (artifacts)
+    # 8️⃣ Upload artifacts
+    - name: Upload security reports
       uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
           trivy-fs.sarif
-          trivy-fs.json
           trivy-image.sarif
-          trivy-image.json
 
-    # 9️⃣ Deploy GitHub Pages (droits élevés UNIQUEMENT ici)
+    # 9️⃣ Deploy GitHub Pages
     - name: Deploy to GitHub Pages
-      permissions:
-        contents: write
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
