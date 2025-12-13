@@ -413,3 +413,5 @@ To understand how static sites are deployed, hosted, and secured using GitHub Pa
 ---
 
 > ⚠️ **Important rule**: Any student unable to justify a tool configuration using the official documentation is considered **not ready for production DevSecOps work**.
+
+# Carles
