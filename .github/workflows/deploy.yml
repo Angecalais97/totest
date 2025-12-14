@@ -35,60 +35,31 @@ jobs:
           stylelint-config-standard \
           stylelint-sarif-formatter
 
-    # 4️⃣ HTML unit tests (with JSON to SARIF conversion)
+    # 3.5️⃣ CREATE STYLELINT CONFIG (PIPELINE-OWNED FIX)
+    - name: Create Stylelint config
+      run: |
+        cat <<EOF > .stylelintrc.json
+        {
+          "extends": "stylelint-config-standard",
+          "rules": {
+            "block-no-empty": true,
+            "color-no-invalid-hex": true,
+            "declaration-block-no-duplicate-properties": true
+          }
+        }
+        EOF
+
+    # 4️⃣ HTML unit tests (JSON → SARIF)
     - name: Run HTML unit tests
       run: |
-        # Generate JSON report
-        ./node_modules/.bin/html-validate index.html --formatter json > html-validate.json
-        
-        # Convert JSON to SARIF using Node.js
-        node -e "
-        const fs = require('fs');
-        const results = JSON.parse(fs.readFileSync('html-validate.json', 'utf8'));
-        
-        // Create SARIF report
-        const sarifReport = {
-          \$schema: 'https://json.schemastore.org/sarif-2.1.0',
-          version: '2.1.0',
-          runs: [{
-            tool: {
-              driver: {
-                name: 'html-validate',
-                version: '8.0.0',
-                informationUri: 'https://html-validate.org/'
-              }
-            },
-            results: results.map(error => ({
-              level: error.severity === 2 ? 'error' : 'warning',
-              message: {
-                text: error.message
-              },
-              locations: [{
-                physicalLocation: {
-                  artifactLocation: {
-                    uri: error.fileName || 'index.html'
-                  },
-                  region: {
-                    startLine: error.line || 1,
-                    startColumn: error.column || 1
-                  }
-                }
-              }],
-              ruleId: error.rule
-            }))
-          }]
-        };
-        
-        fs.writeFileSync('html-validate.sarif', JSON.stringify(sarifReport, null, 2));
-        "
+        npm exec -- html-validate index.html --formatter json > html-validate.json
+        npm exec -- @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
 
-    # 5️⃣ CSS unit tests (using dedicated SARIF formatter)
+    # 5️⃣ CSS unit tests (JSON + SARIF)
     - name: Run CSS unit tests
       run: |
-        # Generate JSON report for artifact upload
-        ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
-        # Generate SARIF report for GitHub Security tab
-        ./node_modules/.bin/stylelint style.css --formatter stylelint-sarif-formatter > stylelint.sarif
+        npm exec -- stylelint style.css --formatter json > stylelint.json
+        npm exec -- stylelint style.css --formatter stylelint-sarif-formatter > stylelint.sarif
 
     # 6️⃣ Upload HTML test results
     - name: Upload HTML test SARIF
@@ -172,7 +143,6 @@ jobs:
 
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
     - name: Checkout repository
@@ -181,11 +151,10 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
-    - name: Upload artifact
+    - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: '.'
+        path: .
 
     - name: Deploy to GitHub Pages
-      id: deployment
       uses: actions/deploy-pages@v4
