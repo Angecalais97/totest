@@ -134,4 +134,3 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: .
-git add . && git commit -m "fix code bug" && git push origin main
