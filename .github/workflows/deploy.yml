@@ -33,19 +33,23 @@ jobs:
           html-validate \
           stylelint \
           stylelint-config-standard \
-          @microsoft/eslint-formatter-sarif
+          stylelint-sarif-formatter
 
-    # 4️⃣ HTML unit tests (FIXED - using direct path)
+    # 4️⃣ HTML unit tests (using built-in SARIF formatter)
     - name: Run HTML unit tests
       run: |
+        # Generate JSON report for artifact upload
         ./node_modules/.bin/html-validate index.html --formatter json > html-validate.json
-        ./node_modules/.bin/@microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
+        # Generate SARIF report for GitHub Security tab
+        ./node_modules/.bin/html-validate index.html --formatter sarif > html-validate.sarif
 
-    # 5️⃣ CSS unit tests (FIXED - using direct path)
+    # 5️⃣ CSS unit tests (using dedicated SARIF formatter)
     - name: Run CSS unit tests
       run: |
+        # Generate JSON report for artifact upload
         ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
-        ./node_modules/.bin/@microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
+        # Generate SARIF report for GitHub Security tab
+        ./node_modules/.bin/stylelint style.css --formatter stylelint-sarif-formatter > stylelint.sarif
 
     # 6️⃣ Upload HTML test results
     - name: Upload HTML test SARIF
@@ -124,13 +128,25 @@ jobs:
 
     permissions:
       contents: write
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: .
+        path: '.'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
