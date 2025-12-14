@@ -19,13 +19,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup Node (for test tools)
+    # 2️⃣ Setup Node (for test tools only)
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 20
 
-    # 3️⃣ Install test tools
+    # 3️⃣ Install test dependencies
     - name: Install test dependencies
       run: |
         npm init -y
@@ -38,13 +38,13 @@ jobs:
     # 4️⃣ HTML unit tests → JSON + SARIF
     - name: Run HTML unit tests
       run: |
-        npx htmlhint index.html --format json > htmlhint.json
+        ./node_modules/.bin/htmlhint index.html --format json > htmlhint.json
         npx @microsoft/eslint-formatter-sarif htmlhint.json > htmlhint.sarif
 
     # 5️⃣ CSS unit tests → JSON + SARIF
     - name: Run CSS unit tests
       run: |
-        npx stylelint style.css --formatter json > stylelint.json
+        ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
         npx @microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
 
     # 6️⃣ Upload HTML test results to GitHub Security
@@ -76,7 +76,7 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    # 🔟 Upload Trivy FS results
+    # 🔟 Upload Trivy FS SARIF
     - name: Upload Trivy FS SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
@@ -97,7 +97,7 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    # 1️⃣3️⃣ Upload Trivy image results
+    # 1️⃣3️⃣ Upload Trivy image SARIF
     - name: Upload Trivy Image SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
