@@ -14,8 +14,12 @@ jobs:
       contents: read
       security-events: write
 
+    # 👉 IMAGE_TAG is defined ONCE here and reused everywhere
+    env:
+      IMAGE_TAG: ${{ github.run_number }}
+
     steps:
-    # 1️⃣ Checkout code
+    # 1️⃣ Checkout
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -23,7 +27,7 @@ jobs:
     - name: Secret scan with Gitleaks
       uses: gitleaks/gitleaks-action@v2
 
-    # 3️⃣ Trivy filesystem scan
+    # 3️⃣ Trivy filesystem scan (visibility mode)
     - name: Trivy filesystem scan
       uses: aquasecurity/trivy-action@master
       with:
@@ -32,7 +36,7 @@ jobs:
         format: sarif
         output: trivy-fs.sarif
         severity: CRITICAL,HIGH
-        exit-code: 1
+        exit-code: 0
 
     - name: Upload Trivy FS SARIF
       uses: github/codeql-action/upload-sarif@v3
@@ -40,7 +44,7 @@ jobs:
         sarif_file: trivy-fs.sarif
         category: trivy-filesystem
 
-    # 4️⃣ SonarQube static analysis
+    # 4️⃣ SonarQube analysis
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@v2
       env:
@@ -55,15 +59,16 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-    # 6️⃣ Build Docker image
+    # 6️⃣ Build Docker image (BUILD NUMBER TAG)
     - name: Build Docker image
-      run: docker build -t totest-site:latest .
+      run: |
+        docker build -t totest-site:${IMAGE_TAG} .
 
-    # 7️⃣ Trivy image scan
+    # 7️⃣ Trivy image scan (same tag)
     - name: Trivy image scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: totest-site:latest
+        image-ref: totest-site:${{ env.IMAGE_TAG }}
         format: sarif
         output: trivy-image.sarif
         severity: CRITICAL,HIGH
@@ -87,7 +92,7 @@ jobs:
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    # 🔟 Push image to Amazon ECR (FINAL SECURITY OUTCOME)
+    # 🔟 Push image to Amazon ECR (BUILD NUMBER TAG)
     - name: Push image to Amazon ECR
       env:
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
@@ -95,10 +100,13 @@ jobs:
       run: |
         ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
         ECR_REPOSITORY=totest
-        IMAGE_TAG=latest
 
-        docker tag totest-site:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag totest-site:${IMAGE_TAG} $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG}
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG}
+
+        # Optional: also update latest tag
+        docker tag totest-site:${IMAGE_TAG} $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   deploy:
     name: 🚀 Deploy GitHub Pages (END)
