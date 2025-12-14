@@ -35,10 +35,10 @@ jobs:
           stylelint-config-standard \
           @microsoft/eslint-formatter-sarif
 
-    # 4️⃣ HTML unit tests → JSON + SARIF
+    # 4️⃣ HTML unit tests → JSON + SARIF (DETERMINISTIC FIX)
     - name: Run HTML unit tests
       run: |
-        ./node_modules/.bin/htmlhint index.html --format json > htmlhint.json
+        node node_modules/htmlhint/bin/htmlhint index.html --format json > htmlhint.json
         npx @microsoft/eslint-formatter-sarif htmlhint.json > htmlhint.sarif
 
     # 5️⃣ CSS unit tests → JSON + SARIF
