@@ -19,13 +19,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup Node.js (tests only)
+    # 2️⃣ Setup Node.js (for tests only)
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 20
 
-    # 3️⃣ Install test tools (STABLE)
+    # 3️⃣ Install test dependencies (CI-SAFE)
     - name: Install test dependencies
       run: |
         npm init -y
@@ -35,26 +35,26 @@ jobs:
           stylelint-config-standard \
           @microsoft/eslint-formatter-sarif
 
-    # 4️⃣ HTML unit tests → JSON + SARIF (STABLE)
+    # 4️⃣ HTML unit tests (NO npx, deterministic)
     - name: Run HTML unit tests
       run: |
-        npx html-validate index.html --formatter json > html-validate.json
+        node node_modules/html-validate/bin/html-validate.js index.html --formatter json > html-validate.json
         npx @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
 
-    # 5️⃣ CSS unit tests → JSON + SARIF
+    # 5️⃣ CSS unit tests
     - name: Run CSS unit tests
       run: |
         ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
         npx @microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
 
-    # 6️⃣ Upload HTML test results
+    # 6️⃣ Upload HTML test results to GitHub Security
     - name: Upload HTML test SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: html-validate.sarif
         category: html-unit-tests
 
-    # 7️⃣ Upload CSS test results
+    # 7️⃣ Upload CSS test results to GitHub Security
     - name: Upload CSS test SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
@@ -76,7 +76,7 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    # 🔟 Upload Trivy FS SARIF
+    # 🔟 Upload Trivy filesystem SARIF
     - name: Upload Trivy FS SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
@@ -104,7 +104,7 @@ jobs:
         sarif_file: trivy-image.sarif
         category: trivy-image
 
-    # 1️⃣4️⃣ Upload all reports as artifacts
+    # 1️⃣4️⃣ Upload ALL reports as artifacts
     - name: Upload all reports
       uses: actions/upload-artifact@v4
       with:
