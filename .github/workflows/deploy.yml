@@ -19,13 +19,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup Node.js (for tests only)
+    # 2️⃣ Setup Node.js
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 20
 
-    # 3️⃣ Install test dependencies (CI-SAFE)
+    # 3️⃣ Install test dependencies
     - name: Install test dependencies
       run: |
         npm init -y
@@ -35,26 +35,26 @@ jobs:
           stylelint-config-standard \
           @microsoft/eslint-formatter-sarif
 
-    # 4️⃣ HTML unit tests (NO npx, deterministic)
+    # 4️⃣ HTML unit tests (OFFICIAL METHOD)
     - name: Run HTML unit tests
       run: |
-        node node_modules/html-validate/bin/html-validate.js index.html --formatter json > html-validate.json
-        npx @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
+        npm exec -- html-validate index.html --formatter json > html-validate.json
+        npm exec -- @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
 
     # 5️⃣ CSS unit tests
     - name: Run CSS unit tests
       run: |
-        ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
-        npx @microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
+        npm exec -- stylelint style.css --formatter json > stylelint.json
+        npm exec -- @microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
 
-    # 6️⃣ Upload HTML test results to GitHub Security
+    # 6️⃣ Upload HTML test results
     - name: Upload HTML test SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: html-validate.sarif
         category: html-unit-tests
 
-    # 7️⃣ Upload CSS test results to GitHub Security
+    # 7️⃣ Upload CSS test results
     - name: Upload CSS test SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
@@ -76,7 +76,7 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    # 🔟 Upload Trivy filesystem SARIF
+    # 🔟 Upload Trivy FS SARIF
     - name: Upload Trivy FS SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
@@ -104,7 +104,7 @@ jobs:
         sarif_file: trivy-image.sarif
         category: trivy-image
 
-    # 1️⃣4️⃣ Upload ALL reports as artifacts
+    # 1️⃣4️⃣ Upload all reports
     - name: Upload all reports
       uses: actions/upload-artifact@v4
       with:
@@ -134,3 +134,4 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: .
+git add . && git commit -m "fix code bug" && git push origin main
