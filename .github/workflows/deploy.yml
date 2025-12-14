@@ -19,27 +19,27 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup Node (for test tools only)
+    # 2️⃣ Setup Node.js (tests only)
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 20
 
-    # 3️⃣ Install test dependencies
+    # 3️⃣ Install test tools (STABLE)
     - name: Install test dependencies
       run: |
         npm init -y
         npm install --save-dev \
-          htmlhint \
+          html-validate \
           stylelint \
           stylelint-config-standard \
           @microsoft/eslint-formatter-sarif
 
-    # 4️⃣ HTML unit tests → JSON + SARIF (DETERMINISTIC FIX)
+    # 4️⃣ HTML unit tests → JSON + SARIF (STABLE)
     - name: Run HTML unit tests
       run: |
-        node node_modules/htmlhint/bin/htmlhint index.html --format json > htmlhint.json
-        npx @microsoft/eslint-formatter-sarif htmlhint.json > htmlhint.sarif
+        npx html-validate index.html --formatter json > html-validate.json
+        npx @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
 
     # 5️⃣ CSS unit tests → JSON + SARIF
     - name: Run CSS unit tests
@@ -47,21 +47,21 @@ jobs:
         ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
         npx @microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
 
-    # 6️⃣ Upload HTML test results to GitHub Security
+    # 6️⃣ Upload HTML test results
     - name: Upload HTML test SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: htmlhint.sarif
+        sarif_file: html-validate.sarif
         category: html-unit-tests
 
-    # 7️⃣ Upload CSS test results to GitHub Security
+    # 7️⃣ Upload CSS test results
     - name: Upload CSS test SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: stylelint.sarif
         category: css-unit-tests
 
-    # 8️⃣ Secret scan (Gitleaks)
+    # 8️⃣ Secret scan
     - name: Secret scan with Gitleaks
       uses: gitleaks/gitleaks-action@v2
 
@@ -83,7 +83,7 @@ jobs:
         sarif_file: trivy-fs.sarif
         category: trivy-filesystem
 
-    # 1️⃣1️⃣ Docker build
+    # 1️⃣1️⃣ Build Docker image
     - name: Build Docker image
       run: docker build -t totest-site .
 
@@ -104,14 +104,14 @@ jobs:
         sarif_file: trivy-image.sarif
         category: trivy-image
 
-    # 1️⃣4️⃣ Upload ALL reports as artifacts
+    # 1️⃣4️⃣ Upload all reports as artifacts
     - name: Upload all reports
       uses: actions/upload-artifact@v4
       with:
         name: reports
         path: |
-          htmlhint.json
-          htmlhint.sarif
+          html-validate.json
+          html-validate.sarif
           stylelint.json
           stylelint.sarif
           trivy-fs.sarif
