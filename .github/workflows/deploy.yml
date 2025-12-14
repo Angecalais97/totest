@@ -35,17 +35,17 @@ jobs:
           stylelint-config-standard \
           @microsoft/eslint-formatter-sarif
 
-    # 4️⃣ HTML unit tests (FIXED)
+    # 4️⃣ HTML unit tests (FIXED - using direct path)
     - name: Run HTML unit tests
       run: |
-        npx html-validate index.html --formatter json > html-validate.json
-        npx @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
+        ./node_modules/.bin/html-validate index.html --formatter json > html-validate.json
+        ./node_modules/.bin/@microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
 
-    # 5️⃣ CSS unit tests (FIXED)
+    # 5️⃣ CSS unit tests (FIXED - using direct path)
     - name: Run CSS unit tests
       run: |
-        npx stylelint style.css --formatter json > stylelint.json
-        npx @microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
+        ./node_modules/.bin/stylelint style.css --formatter json > stylelint.json
+        ./node_modules/.bin/@microsoft/eslint-formatter-sarif stylelint.json > stylelint.sarif
 
     # 6️⃣ Upload HTML test results
     - name: Upload HTML test SARIF
