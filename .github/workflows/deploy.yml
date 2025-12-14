@@ -35,13 +35,52 @@ jobs:
           stylelint-config-standard \
           stylelint-sarif-formatter
 
-    # 4️⃣ HTML unit tests (using built-in SARIF formatter)
+    # 4️⃣ HTML unit tests (with JSON to SARIF conversion)
     - name: Run HTML unit tests
       run: |
-        # Generate JSON report for artifact upload
+        # Generate JSON report
         ./node_modules/.bin/html-validate index.html --formatter json > html-validate.json
-        # Generate SARIF report for GitHub Security tab
-        ./node_modules/.bin/html-validate index.html --formatter sarif > html-validate.sarif
+        
+        # Convert JSON to SARIF using Node.js
+        node -e "
+        const fs = require('fs');
+        const results = JSON.parse(fs.readFileSync('html-validate.json', 'utf8'));
+        
+        // Create SARIF report
+        const sarifReport = {
+          \$schema: 'https://json.schemastore.org/sarif-2.1.0',
+          version: '2.1.0',
+          runs: [{
+            tool: {
+              driver: {
+                name: 'html-validate',
+                version: '8.0.0',
+                informationUri: 'https://html-validate.org/'
+              }
+            },
+            results: results.map(error => ({
+              level: error.severity === 2 ? 'error' : 'warning',
+              message: {
+                text: error.message
+              },
+              locations: [{
+                physicalLocation: {
+                  artifactLocation: {
+                    uri: error.fileName || 'index.html'
+                  },
+                  region: {
+                    startLine: error.line || 1,
+                    startColumn: error.column || 1
+                  }
+                }
+              }],
+              ruleId: error.rule
+            }))
+          }]
+        };
+        
+        fs.writeFileSync('html-validate.sarif', JSON.stringify(sarifReport, null, 2));
+        "
 
     # 5️⃣ CSS unit tests (using dedicated SARIF formatter)
     - name: Run CSS unit tests
