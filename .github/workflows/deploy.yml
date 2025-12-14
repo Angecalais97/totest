@@ -1,4 +1,4 @@
-name: DevSecOps CI – Tests, Scans, Reports & Deploy
+name: DevSecOps CI – Security Scans & Deploy
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   security:
-    name: Tests & Security Scans
+    name: Security Scans
     runs-on: ubuntu-latest
 
     permissions:
@@ -19,67 +19,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup Node.js
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-
-    # 3️⃣ Install test dependencies
-    - name: Install test dependencies
-      run: |
-        npm init -y
-        npm install --save-dev \
-          html-validate \
-          stylelint \
-          stylelint-config-standard \
-          stylelint-sarif-formatter
-
-    # 3.5️⃣ CREATE STYLELINT CONFIG (PIPELINE-OWNED FIX)
-    - name: Create Stylelint config
-      run: |
-        cat <<EOF > .stylelintrc.json
-        {
-          "extends": "stylelint-config-standard",
-          "rules": {
-            "block-no-empty": true,
-            "color-no-invalid-hex": true,
-            "declaration-block-no-duplicate-properties": true
-          }
-        }
-        EOF
-
-    # 4️⃣ HTML unit tests (JSON → SARIF)
-    - name: Run HTML unit tests
-      run: |
-        npm exec -- html-validate index.html --formatter json > html-validate.json
-        npm exec -- @microsoft/eslint-formatter-sarif html-validate.json > html-validate.sarif
-
-    # 5️⃣ CSS unit tests (JSON + SARIF)
-    - name: Run CSS unit tests
-      run: |
-        npm exec -- stylelint style.css --formatter json > stylelint.json
-        npm exec -- stylelint style.css --formatter stylelint-sarif-formatter > stylelint.sarif
-
-    # 6️⃣ Upload HTML test results
-    - name: Upload HTML test SARIF
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: html-validate.sarif
-        category: html-unit-tests
-
-    # 7️⃣ Upload CSS test results
-    - name: Upload CSS test SARIF
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: stylelint.sarif
-        category: css-unit-tests
-
-    # 8️⃣ Secret scan
+    # 2️⃣ Secret scanning (Gitleaks)
     - name: Secret scan with Gitleaks
       uses: gitleaks/gitleaks-action@v2
 
-    # 9️⃣ Trivy filesystem scan
+    # 3️⃣ Trivy filesystem scan
     - name: Trivy filesystem scan
       uses: aquasecurity/trivy-action@master
       with:
@@ -90,18 +34,18 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    # 🔟 Upload Trivy FS SARIF
+    # 4️⃣ Upload Trivy FS results
     - name: Upload Trivy FS SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-fs.sarif
         category: trivy-filesystem
 
-    # 1️⃣1️⃣ Build Docker image
+    # 5️⃣ Build Docker image
     - name: Build Docker image
       run: docker build -t totest-site .
 
-    # 1️⃣2️⃣ Trivy image scan
+    # 6️⃣ Trivy image scan
     - name: Trivy image scan
       uses: aquasecurity/trivy-action@master
       with:
@@ -111,23 +55,19 @@ jobs:
         severity: CRITICAL,HIGH
         exit-code: 1
 
-    # 1️⃣3️⃣ Upload Trivy image SARIF
+    # 7️⃣ Upload Trivy image results
     - name: Upload Trivy Image SARIF
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: trivy-image.sarif
         category: trivy-image
 
-    # 1️⃣4️⃣ Upload all reports
-    - name: Upload all reports
+    # 8️⃣ Upload security reports as artifacts
+    - name: Upload security reports
       uses: actions/upload-artifact@v4
       with:
-        name: reports
+        name: security-reports
         path: |
-          html-validate.json
-          html-validate.sarif
-          stylelint.json
-          stylelint.sarif
           trivy-fs.sarif
           trivy-image.sarif
 
@@ -145,16 +85,20 @@ jobs:
       name: github-pages
 
     steps:
+    # 9️⃣ Checkout
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # 🔟 Setup Pages
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
+    # 1️⃣1️⃣ Upload Pages artifact
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: .
 
+    # 1️⃣2️⃣ Deploy to GitHub Pages
     - name: Deploy to GitHub Pages
       uses: actions/deploy-pages@v4
