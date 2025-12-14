@@ -1,119 +1,6 @@
-#name: DevSecOps CI – Security Scans & Deploy
-#
-#on:
-#  push:
-#    branches:
-#      - main
-#
-#jobs:
-#  security:
-#    name: Security Scans
-#    runs-on: ubuntu-latest
-#
-#    permissions:
-#      contents: read
-#      security-events: write
-#
-#    steps:
-#    # 1️⃣ Checkout
-#    - name: Checkout repository
-#      uses: actions/checkout@v4
-#
-#    # 2️⃣ Secret scanning (Gitleaks)
-#    - name: Secret scan with Gitleaks
-#      uses: gitleaks/gitleaks-action@v2
-#
-#    # 3️⃣ Trivy filesystem scan
-#    - name: Trivy filesystem scan
-#      uses: aquasecurity/trivy-action@master
-#      with:
-#        scan-type: fs
-#        scan-ref: .
-#        format: sarif
-#        output: trivy-fs.sarif
-#        severity: CRITICAL,HIGH
-#        exit-code: 1
-#
-#    # 4️⃣ Upload Trivy FS results
-#    - name: Upload Trivy FS SARIF
-#      uses: github/codeql-action/upload-sarif@v3
-#      with:
-#        sarif_file: trivy-fs.sarif
-#        category: trivy-filesystem
-#
-#    # 5️⃣ Build Docker image
-#    - name: Build Docker image
-#      run: docker build -t totest-site .
-#
-#    # 6️⃣ Trivy image scan
-#    - name: Trivy image scan
-#      uses: aquasecurity/trivy-action@master
-#      with:
-#        image-ref: totest-site
-#        format: sarif
-#        output: trivy-image.sarif
-#        severity: CRITICAL,HIGH
-#        exit-code: 1
-#
-#    # 7️⃣ Upload Trivy image results
-#    - name: Upload Trivy Image SARIF
-#      uses: github/codeql-action/upload-sarif@v3
-#      with:
-#        sarif_file: trivy-image.sarif
-#        category: trivy-image
-#
-#    # 8️⃣ Upload security reports as artifacts
-#    - name: Upload security reports
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: security-reports
-#        path: |
-#          trivy-fs.sarif
-#          trivy-image.sarif
-#
-#  deploy:
-#    name: Deploy GitHub Pages
-#    runs-on: ubuntu-latest
-#    needs: security
-#
-#    permissions:
-#      contents: write
-#      pages: write
-#      id-token: write
-#
-#    environment:
-#      name: github-pages
-#
-#    steps:
-#    # 9️⃣ Checkout
-#    - name: Checkout repository
-#      uses: actions/checkout@v4
-#
-#    # 🔟 Setup Pages
-#    - name: Setup Pages
-#      uses: actions/configure-pages@v4
-#
-#    # 1️⃣1️⃣ Upload Pages artifact
-#    - name: Upload Pages artifact
-#      uses: actions/upload-pages-artifact@v3
-#      with:
-#        path: .
-#
-#    # 1️⃣2️⃣ Deploy to GitHub Pages
-#    - name: Deploy to GitHub Pages
-#      uses: actions/deploy-pages@v4
-#
-
-name: DevSecOps CI – Security Scans, Attack Simulation & Deploy
-
-on:
-  push:
-    branches:
-      - main
-
 jobs:
   security:
-    name: Security Scans
+    name: Security Scans + SonarQube
     runs-on: ubuntu-latest
 
     permissions:
@@ -123,6 +10,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    # 🔎 SonarQube Scan
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@v2
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
     # 🔐 Secret scanning
     - name: Secret scan with Gitleaks
@@ -145,7 +39,7 @@ jobs:
         sarif_file: trivy-fs.sarif
         category: trivy-filesystem
 
-    # 🐳 Build image
+    # 🐳 Build Docker image
     - name: Build Docker image
       run: docker build -t totest-site .
 
@@ -164,62 +58,3 @@ jobs:
       with:
         sarif_file: trivy-image.sarif
         category: trivy-image
-
-  # 🧨 ATTACK SIMULATION JOB (SAFE & CONTROLLED)
-  attack-simulation:
-    name: Simulate Attacks (Defensive Testing)
-    runs-on: ubuntu-latest
-    needs: security
-
-    permissions:
-      contents: read
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    # 🚨 Simulate secret leak
-    - name: Simulate leaked secret
-      run: |
-        echo "AWS_SECRET_ACCESS_KEY=FAKE_SECRET_123456" > fake-secret.txt
-        echo "This file simulates a leaked secret."
-
-    - name: Run Gitleaks on simulated leak
-      uses: gitleaks/gitleaks-action@v2
-      continue-on-error: true
-
-    - name: Assert security gate triggered
-      run: |
-        echo "If Gitleaks detected the secret, the defense works."
-        exit 1
-      if: success()
-
-  deploy:
-    name: Deploy GitHub Pages
-    runs-on: ubuntu-latest
-    needs:
-      - security
-      - attack-simulation
-
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-
-    - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: .
-
-    - name: Deploy to GitHub Pages
-      uses: actions/deploy-pages@v4
