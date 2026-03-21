@@ -1,4 +1,4 @@
-# 🚀 DevSecOps  Portfolio Project – `totest`
+# 🚀 DevSecOps Project – `totest`
 
 ## 📌 Project Context
 
