@@ -1,6 +1,6 @@
-# 🚀 DevSecOps Project – `totest`
+# Carles DevSecOps Project – `totest`
 
-## 📌 Project Context
+##  Project Context
 
 This repository (`totest`) is intentionally **simple**. It contains only:
 
