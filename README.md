@@ -1,4 +1,4 @@
-# Carles DevSecOps Project – `totest`
+# DevSecOps Project – `totest`
 
 ##  Project Context
 
