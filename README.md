@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #  Carles DevSecOps Project – `totest`
+=======
+# DevSecOps Project – `totest`
+>>>>>>> bobo
 
 ##  Project Context
 
